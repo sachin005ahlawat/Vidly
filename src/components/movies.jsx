@@ -5,7 +5,10 @@ import {getMovies} from '../services/fakeMovieService';
 import {getGenres} from '../services/fakeGenreService';
 import {paginate} from '../utils/paginate';
 import MoviesTable from './moviesTable';
+import SearchBox from  './common/search';
+import {Link} from 'react-router-dom';
 import _ from'lodash';
+
 
 class Movies extends Component {
     state = { 
@@ -13,7 +16,9 @@ class Movies extends Component {
         genres:[],
         pageSize:4,
         currentPage:1,
-        sortColumn:{path:'title',order:'asc'}
+        sortColumn:{path:'title',order:'asc'},
+        searchQuery:"",
+        selectedGenre:null
      }
 
      //this method is called when an instance of this component is rendered in DOM;
@@ -40,20 +45,32 @@ class Movies extends Component {
      }
 
      handleGenreSelect= genre => {
-       this.setState({selectedGenre:genre,currentPage:1});
+       this.setState({selectedGenre:genre,searchQuery:"",currentPage:1});
      }
+     handleSearch=query=>{
+        this.setState({searchQuery:query,selectedGenre:null,currentPage:1});
+     }
+
      handleSort=sortColumn=>{
       this.setState({sortColumn});
      }
 
      getPagedData = () => {
 
-      const {currentPage,pageSize,movies:allMovies,selectedGenre,sortColumn}=this.state;
+      const {
+        currentPage,
+        pageSize,
+        movies: allMovies,
+        selectedGenre,
+        sortColumn,
+        searchQuery
+      } = this.state;
 
-      const filtered =
-        selectedGenre && selectedGenre._id
-          ? allMovies.filter((m) => m.genre._id === selectedGenre._id)
-          : allMovies;
+      let filtered=allMovies;
+      if(searchQuery)
+        filtered=allMovies.filter(m =>m.title.toLowerCase().startsWith(searchQuery.toLowerCase()));
+      else if(selectedGenre && selectedGenre._id)
+          filtered=allMovies.filter((m) => m.genre._id === selectedGenre._id);
 
       const sorted = _.orderBy(filtered, [sortColumn.path], [sortColumn.order]);
 
@@ -64,7 +81,7 @@ class Movies extends Component {
 
     render() { 
         const {length:count}=this.state.movies;
-        const {currentPage,pageSize,sortColumn}=this.state;
+        const {currentPage,pageSize,sortColumn,searchQuery}=this.state;
 
         if(count===0) return <p>There are no movies in the database!</p>;
 
@@ -80,7 +97,15 @@ class Movies extends Component {
               ></ListGroup>
             </div>
             <div className="col">
+              <Link
+                to="/movies/new"
+                className="btn btn-primary"
+                style={{ marginBottom: 20 }}
+              >
+                New Movie
+              </Link>
               <p>There are {totalCount} movies in the database</p>
+              <SearchBox value={searchQuery} onChange={this.handleSearch}></SearchBox>
               <MoviesTable
                 movies={movies}
                 sortColumn={sortColumn}
